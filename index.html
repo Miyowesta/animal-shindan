@@ -117,6 +117,10 @@
   .latin { font-style: italic; font-size: 13px; color: var(--muted); margin: 0; }
   .catch { margin: 0; padding: 12px 16px; border-radius: 14px; background: var(--sun-soft); font-weight: 700; }
   .card .text { margin: 0; }
+  .ai { margin: 0; padding: 14px 16px; border-radius: 14px; background: #fff; box-shadow: inset 0 0 0 2px var(--line); display: grid; gap: 4px; }
+  .ai b { font-size: 12px; color: var(--green); letter-spacing: .06em; }
+  .ai p { margin: 0; }
+  .ai.loading p { color: var(--muted); }
   dl { margin: 0; display: grid; grid-template-columns: 7em minmax(0, 1fr); border-top: 1px solid var(--line); }
   dt, dd { margin: 0; padding: 10px 0; border-bottom: 1px solid var(--line); }
   dt { font-size: 13px; color: var(--muted); letter-spacing: .06em; }
@@ -267,6 +271,10 @@ const screen = document.getElementById("screen");
 const COUNT = QUESTIONS.length;  // 質問の数
 let current = 0;   // いま何問目か
 let scores = {};   // 動物ごとの点数
+let picked = [];   // 選んだ回答（AIに渡す）
+
+// AIメッセージを作るサーバーのURL（空のままならAIメッセージは出ません）
+const API_URL = "https://animal-shindan-api.miyowesta.workers.dev";
 
 document.getElementById("eyebrow").textContent = `全${COUNT}問でわかる`;
 
@@ -287,6 +295,7 @@ function showStart() {
 function startQuiz() {
   current = 0;
   scores = {};
+  picked = [];
   Object.keys(ANIMALS).forEach(key => scores[key] = 0);
   showQuestion();
 }
@@ -302,12 +311,13 @@ function showQuestion() {
     <p class="question">${item.q}</p>
     <div class="choices">${buttons}</div>`;
   screen.querySelectorAll(".choice").forEach(btn => {
-    btn.onclick = () => answer(item.choices[btn.dataset.i][1]);
+    btn.onclick = () => answer(item.choices[btn.dataset.i]);
   });
 }
 
-function answer(animalKeys) {
-  animalKeys.forEach(key => scores[key] += 1);  // 選んだ動物に1点
+function answer(choice) {
+  picked.push(choice[0]);                        // 選んだ回答を覚えておく
+  choice[1].forEach(key => scores[key] += 1);    // 選んだ動物に1点
   current += 1;
   if (current < COUNT) showQuestion();
   else showResult();
@@ -340,6 +350,7 @@ function showResult() {
     </div>
     <p class="catch">${a.catch}</p>
     <p class="text">${a.text}</p>
+    <div class="ai loading" id="ai" hidden><b>AIからあなたへのメッセージ</b><p>あなたの回答を読んで、メッセージを書いています…</p></div>
     <dl>
       <dt>生息地</dt><dd>${a.habitat}</dd>
       <dt>長所</dt><dd>${a.good}</dd>
@@ -352,6 +363,27 @@ function showResult() {
       <button class="btn-ghost" id="again">もう一度診断する</button>
     </div>`;
   document.getElementById("again").onclick = startQuiz;
+  askAI(a.name);
+}
+
+// AIに、その人だけのメッセージを書いてもらう
+async function askAI(animalName) {
+  if (!API_URL) return;
+  const box = document.getElementById("ai");
+  box.hidden = false;
+  try {
+    const res = await fetch(API_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ animal: animalName, answers: picked }),
+    });
+    const data = await res.json();
+    if (!res.ok || !data.message) throw new Error(data.error);
+    box.classList.remove("loading");
+    box.querySelector("p").textContent = data.message;
+  } catch (err) {
+    box.hidden = true;   // うまくいかないときは、メッセージ欄ごと隠す
+  }
 }
 
 showStart();
