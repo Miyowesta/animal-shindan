@@ -107,6 +107,11 @@
     background: #fff; color: var(--ink); box-shadow: inset 0 0 0 2px var(--line);
   }
   .choice:hover { background: var(--sun-soft); box-shadow: inset 0 0 0 2px var(--sun); }
+  .choice.selected { background: var(--sun-soft); box-shadow: inset 0 0 0 2px var(--green); font-weight: 700; }
+  .nav { display: flex; justify-content: space-between; gap: 10px; }
+  .btn-nav { background: transparent; color: var(--green); padding: 8px 12px; font-size: 14px; }
+  .btn-nav:hover { background: var(--sun-soft); }
+  .btn-nav:disabled { color: var(--line); cursor: default; background: transparent; }
 
   /* 結果画面（図鑑のページ風） */
   .result-top { display: flex; gap: 16px; align-items: center; }
@@ -270,8 +275,9 @@ const QUESTIONS = [
 const screen = document.getElementById("screen");
 const COUNT = QUESTIONS.length;  // 質問の数
 let current = 0;   // いま何問目か
-let scores = {};   // 動物ごとの点数
-let picked = [];   // 選んだ回答（AIに渡す）
+let chosen = [];   // 各質問で選んだ選択肢の番号（戻ったときに覚えておくため）
+let scores = {};   // 動物ごとの点数（結果を出すときに計算）
+let picked = [];   // 選んだ回答の文章（AIに渡す）
 
 // AIメッセージを作るサーバーのURL（空のままならAIメッセージは出ません）
 const API_URL = "https://animal-shindan-api.miyowesta.workers.dev";
@@ -294,36 +300,55 @@ function showStart() {
 
 function startQuiz() {
   current = 0;
-  scores = {};
-  picked = [];
-  Object.keys(ANIMALS).forEach(key => scores[key] = 0);
+  chosen = [];
   showQuestion();
 }
 
 function showQuestion() {
   const item = QUESTIONS[current];
-  const progress = QUESTIONS.map((_, i) => `<i class="${i < current ? "done" : ""}"></i>`).join("");
+  const progress = QUESTIONS.map((_, i) => `<i class="${chosen[i] !== undefined ? "done" : ""}"></i>`).join("");
+  // 前に選んだ選択肢には印（selected）をつける
   const buttons = item.choices
-    .map((c, i) => `<button class="choice" data-i="${i}">${c[0]}</button>`).join("");
+    .map((c, i) => `<button class="choice${chosen[current] === i ? " selected" : ""}" data-i="${i}">${c[0]}</button>`).join("");
+  const canNext = chosen[current] !== undefined;  // 答えた質問なら「次へ」が押せる
   screen.innerHTML = `
     <div class="progress" aria-hidden="true">${progress}</div>
     <span class="qnum">質問 ${current + 1} / ${COUNT}</span>
     <p class="question">${item.q}</p>
-    <div class="choices">${buttons}</div>`;
+    <div class="choices">${buttons}</div>
+    <div class="nav">
+      <button class="btn-nav" id="prev" ${current === 0 ? "disabled" : ""}>‹ 前の質問</button>
+      <button class="btn-nav" id="next" ${canNext ? "" : "disabled"}>${current === COUNT - 1 ? "結果を見る" : "次の質問"} ›</button>
+    </div>`;
   screen.querySelectorAll(".choice").forEach(btn => {
-    btn.onclick = () => answer(item.choices[btn.dataset.i]);
+    btn.onclick = () => answer(Number(btn.dataset.i));
   });
+  document.getElementById("prev").onclick = () => { current -= 1; showQuestion(); };
+  document.getElementById("next").onclick = goNext;
 }
 
-function answer(choice) {
-  picked.push(choice[0]);                        // 選んだ回答を覚えておく
-  choice[1].forEach(key => scores[key] += 1);    // 選んだ動物に1点
+function answer(i) {
+  chosen[current] = i;   // この質問で選んだ番号を覚えておく（選び直したら上書き）
+  goNext();
+}
+
+function goNext() {
   current += 1;
   if (current < COUNT) showQuestion();
   else showResult();
 }
 
 function showResult() {
+  // 選んだ回答から点数を計算する（選んだ動物に1点ずつ）
+  scores = {};
+  Object.keys(ANIMALS).forEach(key => scores[key] = 0);
+  picked = [];
+  chosen.forEach((ci, qi) => {
+    const choice = QUESTIONS[qi].choices[ci];
+    picked.push(choice[0]);
+    choice[1].forEach(key => scores[key] += 1);
+  });
+
   // いちばん点数の高い動物を探す（同点なら先に並んでいるほう）
   const ranking = Object.keys(scores).sort((a, b) => scores[b] - scores[a]);
   const key = ranking[0];
