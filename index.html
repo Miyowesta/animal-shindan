@@ -1,0 +1,358 @@
+<!doctype html>
+<html lang="ja">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>どうぶつ図鑑診断</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@500;700;800&family=Zen+Maru+Gothic:wght@500;700&display=swap">
+<style>
+  /* レイアウト: 水彩の森の背景（左右）に、白いカードが中央に浮かぶ。質問と結果もカードの中身だけ入れ替わる */
+  :root {
+    color-scheme: light;      /* イラストに合わせて明るい見た目に固定 */
+    --bg: #F6F3E9;            /* 背景（画像の地の色） */
+    --card: rgba(255, 255, 252, .94);
+    --tile: #F7F4EA;          /* 動物タイルの地 */
+    --ink: #3A3A32;           /* 文字 */
+    --muted: #6E6C5F;         /* 補足の文字 */
+    --line: #E4DFCF;          /* 線 */
+    --green: #3E7550;         /* ボタン・「図鑑診断」の色 */
+    --green-dark: #2E5B3D;
+    --brown: #B5662C;         /* 「どうぶつ」の色 */
+    --sun: #EDB63F;           /* キラキラ・肉球の色 */
+    --sun-soft: #FBF0D2;
+    --font-title: "M PLUS Rounded 1c", "Hiragino Maru Gothic ProN", "Yu Gothic", sans-serif;
+    --font-body: "Zen Maru Gothic", "Hiragino Maru Gothic ProN", "Yu Gothic", "Meiryo", sans-serif;
+  }
+
+  * { box-sizing: border-box; }
+  html { background: var(--bg); }
+  body {
+    background: var(--bg); color: var(--ink);
+    font-family: var(--font-body); font-size: 16px; line-height: 1.75;
+    padding-inline: 16px; padding-block: 28px 0;
+    min-height: 100vh; overflow-x: hidden;
+  }
+
+  /* 左右の森のイラスト（広い画面だけ） */
+  .side { display: none; }
+  @media (min-width: 1000px) {
+    .side {
+      display: block; position: fixed; top: 0; bottom: 0; width: 46vh; max-width: 30vw;
+      background-size: cover; z-index: 0; pointer-events: none;
+    }
+    .side.left  { left: 0;  background-image: url("images/bg-left.jpg");  background-position: right bottom;
+                  -webkit-mask-image: linear-gradient(to right, #000 75%, transparent); mask-image: linear-gradient(to right, #000 75%, transparent); }
+    .side.right { right: 0; background-image: url("images/bg-right.jpg"); background-position: left bottom;
+                  -webkit-mask-image: linear-gradient(to left, #000 75%, transparent);  mask-image: linear-gradient(to left, #000 75%, transparent); }
+  }
+
+  .wrap { position: relative; z-index: 1; max-width: 640px; margin: 0 auto; display: grid; gap: 22px; }
+
+  /* タイトル */
+  header { text-align: center; display: grid; gap: 2px; }
+  .eyebrow {
+    font-family: var(--font-title); font-weight: 700; font-size: 15px; letter-spacing: .14em; color: var(--ink);
+  }
+  .eyebrow::before, .eyebrow::after { content: "＼"; color: var(--sun); margin: 0 .6em; letter-spacing: 0; }
+  .eyebrow::after { content: "／"; }
+  h1 {
+    margin: 0; font-family: var(--font-title); font-weight: 800; line-height: 1.2;
+    font-size: clamp(34px, 9.5vw, 64px); letter-spacing: .02em;
+    display: inline-flex; align-items: center; justify-content: center; gap: .1em; flex-wrap: wrap;
+  }
+  h1 .a { color: var(--brown); }
+  h1 .b { color: var(--green-dark); }
+  h1 svg { width: .8em; height: .8em; flex: none; }
+
+  /* カード */
+  .card {
+    background: var(--card); border-radius: 22px; padding: 26px clamp(16px, 5vw, 40px);
+    box-shadow: 0 10px 30px rgba(90, 80, 40, .10); display: grid; gap: 20px;
+  }
+  .lead { margin: 0; text-align: center; }
+
+  /* 動物タイル */
+  .zoo { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+  @media (max-width: 420px) { .zoo { gap: 8px; } }
+  .zoo figure { margin: 0; background: var(--tile); border-radius: 16px; overflow: hidden; text-align: center; }
+  .zoo img { display: block; width: 100%; aspect-ratio: 156 / 116; object-fit: cover; }
+  .zoo figcaption { font-weight: 700; font-size: clamp(11px, 3.1vw, 14px); white-space: nowrap; padding: 2px 0 8px; }
+
+  /* ボタン */
+  button, .btn {
+    font: inherit; font-weight: 700; cursor: pointer; border-radius: 999px; text-decoration: none; text-align: center;
+    padding: 12px 22px; border: 0; background: var(--green); color: #fff;
+    display: inline-flex; align-items: center; justify-content: center; gap: 10px;
+  }
+  button:hover, .btn:hover { background: var(--green-dark); }
+  button:focus-visible, .btn:focus-visible { outline: 3px solid var(--sun); outline-offset: 3px; }
+  .start { font-size: 20px; padding: 14px 24px; width: 100%; box-shadow: 0 6px 0 var(--green-dark); }
+  .start .paw { width: 40px; height: 40px; border-radius: 50%; background: var(--green-dark); display: grid; place-items: center; }
+  .start .paw svg { width: 24px; height: 24px; }
+  .btn-ghost { background: transparent; color: var(--green); box-shadow: inset 0 0 0 2px var(--green); }
+  .btn-ghost:hover { background: var(--sun-soft); }
+  .row { display: flex; flex-wrap: wrap; gap: 10px; }
+  .row > * { flex: 1 1 180px; }
+
+  /* 質問画面 */
+  .progress { display: flex; gap: 4px; }
+  .progress i { flex: 1; height: 6px; border-radius: 3px; background: var(--line); }
+  .progress i.done { background: var(--green); }
+  .qnum { font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .question { font-family: var(--font-title); font-size: 22px; font-weight: 800; margin: 0; text-wrap: balance; }
+  .choices { display: grid; gap: 10px; }
+  .choice {
+    justify-content: flex-start; text-align: left; font-weight: 500; border-radius: 14px;
+    background: #fff; color: var(--ink); box-shadow: inset 0 0 0 2px var(--line);
+  }
+  .choice:hover { background: var(--sun-soft); box-shadow: inset 0 0 0 2px var(--sun); }
+
+  /* 結果画面（図鑑のページ風） */
+  .result-top { display: flex; gap: 16px; align-items: center; }
+  .big { width: 132px; flex: none; border-radius: 18px; background: var(--tile); }
+  .result-top > div { min-width: 0; }
+  .you-are { font-size: 13px; color: var(--muted); margin: 0; }
+  .animal { font-family: var(--font-title); font-weight: 800; font-size: 32px; margin: 0; line-height: 1.3; color: var(--brown); }
+  .latin { font-style: italic; font-size: 13px; color: var(--muted); margin: 0; }
+  .catch { margin: 0; padding: 12px 16px; border-radius: 14px; background: var(--sun-soft); font-weight: 700; }
+  .card .text { margin: 0; }
+  dl { margin: 0; display: grid; grid-template-columns: 7em minmax(0, 1fr); border-top: 1px solid var(--line); }
+  dt, dd { margin: 0; padding: 10px 0; border-bottom: 1px solid var(--line); }
+  dt { font-size: 13px; color: var(--muted); letter-spacing: .06em; }
+  .bars { display: grid; gap: 6px; }
+  .bar { display: grid; grid-template-columns: 7em 1fr 2.8em; gap: 8px; align-items: center; font-size: 13px; }
+  .bar b { display: block; height: 8px; border-radius: 4px; background: var(--line); overflow: hidden; }
+  .bar b i { display: block; height: 100%; background: var(--green); }
+  .bar span:last-child { text-align: right; font-variant-numeric: tabular-nums; color: var(--muted); }
+
+  /* 下のネコとイヌ（せまい画面だけ） */
+  footer { display: grid; grid-template-columns: 1fr 1fr; align-items: end; margin-inline: -16px; }
+  footer img { width: 100%; max-width: 200px; display: block; -webkit-mask-image: linear-gradient(to bottom, transparent, #000 25%); mask-image: linear-gradient(to bottom, transparent, #000 25%); }
+  footer img:last-child { justify-self: end; }
+  .note { grid-column: 1 / -1; order: -1; font-size: 12px; color: var(--muted); margin: 0 0 8px; text-align: center; }
+  @media (min-width: 1000px) {
+    footer { display: block; margin: 0; }
+    footer img { display: none; }
+    .note { margin-bottom: 28px; }
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .card { animation: pop .3s ease-out; }
+    @keyframes pop { from { transform: translateY(8px); } to { transform: none; } }
+  }
+</style>
+
+<div class="side left" aria-hidden="true"></div>
+<div class="side right" aria-hidden="true"></div>
+
+<div class="wrap">
+  <header>
+    <span class="eyebrow" id="eyebrow"></span>
+    <h1>
+      <span class="a">どうぶつ</span><span class="b">図鑑診断</span>
+      <!-- 虫めがねと肉球のアイコン -->
+      <svg viewBox="0 0 40 40" aria-hidden="true">
+        <circle cx="17" cy="17" r="13" fill="#FFF6DD" stroke="#B5662C" stroke-width="4"/>
+        <path d="M26.5 26.5 L36 36" stroke="#B5662C" stroke-width="5" stroke-linecap="round"/>
+        <ellipse cx="17" cy="21" rx="4.6" ry="3.8" fill="#EDB63F"/>
+        <circle cx="11.5" cy="15.5" r="2" fill="#EDB63F"/><circle cx="15" cy="12" r="2" fill="#EDB63F"/>
+        <circle cx="19.5" cy="12" r="2" fill="#EDB63F"/><circle cx="23" cy="15.5" r="2" fill="#EDB63F"/>
+      </svg>
+    </h1>
+  </header>
+  <main class="card" id="screen"></main>
+  <footer>
+    <img src="images/scene-cat.jpg" alt="">
+    <p class="note">試作品です。結果は遊びとしてお楽しみください。</p>
+    <img src="images/scene-dog.jpg" alt="">
+  </footer>
+</div>
+
+<script>
+// ============================================================
+// 1. 動物のデータ（結果に出る内容）
+//    ここを書きかえると、結果の文章が変わります。
+//    イラストは images フォルダの「英語名.png」が使われます。
+// ============================================================
+const ANIMALS = {
+  cat:     { name: "ネコ", latin: "Felis libera", catch: "自由気まま、でも実は甘えたがり",
+             text: "自分のペースを大切にする人。好きなことにはとことん集中し、気が向いたときに人に寄りそいます。",
+             good: "自分らしさを失わない", care: "興味がないと返事が遅くなりがち", match: "dog", habitat: "日当たりのいい窓辺" },
+  dog:     { name: "イヌ", latin: "Canis fidelis", catch: "まっすぐで、みんなの味方",
+             text: "人の役に立つことが好きな人。素直で行動が早く、まわりを明るく元気にします。",
+             good: "信頼される誠実さ", care: "頼まれると断れない", match: "cat", habitat: "にぎやかな公園" },
+  owl:     { name: "フクロウ", latin: "Strix sapiens", catch: "静かに見抜く、夜の知恵者",
+             text: "物事をじっくり考える人。話すより聞くのが得意で、いざというときに鋭い一言を出します。",
+             good: "冷静な判断力", care: "考えすぎて動き出しが遅い", match: "dolphin", habitat: "夜ふけの書斎" },
+  dolphin: { name: "イルカ", latin: "Delphinus amicus", catch: "場を明るくするムードメーカー",
+             text: "人と楽しむのが得意な人。空気を読むのがうまく、初対面でもすぐに打ちとけます。",
+             good: "だれとでも仲良くなれる", care: "ひとりの時間が苦手", match: "owl", habitat: "仲間の集まる海" },
+  lion:    { name: "ライオン", latin: "Panthera dux", catch: "堂々と先頭に立つリーダー",
+             text: "決めたらすぐ動く人。責任感が強く、困ったときに自然と頼られます。",
+             good: "決断力と行動力", care: "ひとりで抱えこみやすい", match: "sloth", habitat: "見晴らしのいい丘" },
+  sloth:   { name: "ナマケモノ", latin: "Bradypus tranquillus", catch: "ゆっくり、でも確実に",
+             text: "あせらず自分のリズムで進む人。おだやかで、そばにいる人をほっとさせます。",
+             good: "どんなときも落ちついている", care: "締め切りギリギリになりがち", match: "lion", habitat: "木もれ日の森" },
+  fox:     { name: "キツネ", latin: "Vulpes callida", catch: "ひらめきで道を切りひらく",
+             text: "工夫するのが得意な人。新しいことに目がなく、人が思いつかない近道を見つけます。",
+             good: "アイデアと柔軟さ", care: "飽きっぽい一面も", match: "penguin", habitat: "夕暮れの野原" },
+  penguin: { name: "ペンギン", latin: "Spheniscus diligens", catch: "コツコツ型のがんばり屋",
+             text: "仲間と力を合わせ、決めたことを最後までやりとげる人。計画を立てるのが得意です。",
+             good: "まじめで粘り強い", care: "予定外のことにあわてやすい", match: "fox", habitat: "朝の海辺" },
+};
+
+// ============================================================
+// 2. 質問のデータ
+//    choices の [ ] に入っている動物に1点ずつ入ります。
+//    質問の数は自動で数えて画面に表示されます。
+// ============================================================
+const QUESTIONS = [
+  { q: "休みの日、いちばんしたいことは？", choices: [
+    ["家でのんびりする", ["sloth", "cat"]],
+    ["友だちと出かける", ["dog", "dolphin"]],
+    ["行ったことのない場所を探検する", ["fox", "lion"]],
+    ["本を読んだり、何かを学んだりする", ["owl", "penguin"]] ] },
+  { q: "グループでのあなたの役割は？", choices: [
+    ["みんなをまとめる", ["lion", "penguin"]],
+    ["場を盛り上げる", ["dolphin", "dog"]],
+    ["作戦を考える", ["owl", "fox"]],
+    ["マイペースに参加する", ["cat", "sloth"]] ] },
+  { q: "困ったことが起きたら？", choices: [
+    ["とにかくすぐ動く", ["lion", "dog"]],
+    ["まずはじっくり考える", ["owl", "sloth"]],
+    ["うまい抜け道を探す", ["fox", "cat"]],
+    ["仲間に相談する", ["penguin", "dolphin"]] ] },
+  { q: "いちばん好きな時間帯は？", choices: [
+    ["早朝", ["penguin", "dog"]],
+    ["お昼", ["lion", "dolphin"]],
+    ["夕方", ["fox", "cat"]],
+    ["深夜", ["owl", "sloth"]] ] },
+  { q: "メッセージが届いたら？", choices: [
+    ["すぐに返す", ["dog", "penguin"]],
+    ["スタンプで楽しく返す", ["dolphin", "fox"]],
+    ["気が向いたら返す", ["cat", "sloth"]],
+    ["内容をよく考えてから返す", ["owl", "lion"]] ] },
+  { q: "旅行の計画はどうする？", choices: [
+    ["細かく決めておく", ["penguin", "owl"]],
+    ["行き先だけ決める", ["lion", "fox"]],
+    ["みんなに合わせる", ["dog", "dolphin"]],
+    ["計画はしない", ["cat", "sloth"]] ] },
+  { q: "言われていちばんうれしい言葉は？", choices: [
+    ["やさしいね", ["dog", "sloth"]],
+    ["頭がいいね", ["owl", "fox"]],
+    ["頼りになるね", ["lion", "penguin"]],
+    ["一緒にいると楽しい", ["dolphin", "cat"]] ] },
+  { q: "住んでみたい場所は？", choices: [
+    ["静かな森の中", ["owl", "fox"]],
+    ["海の近く", ["dolphin", "penguin"]],
+    ["にぎやかな街の真ん中", ["lion", "dog"]],
+    ["日当たりのいい部屋", ["cat", "sloth"]] ] },
+  { q: "新しいことをはじめるなら？", choices: [
+    ["まず計画を立てる", ["penguin", "owl"]],
+    ["とりあえずやってみる", ["lion", "fox"]],
+    ["だれかを誘って一緒にやる", ["dog", "dolphin"]],
+    ["気が向いたときに少しずつ", ["cat", "sloth"]] ] },
+  { q: "あなたにとって理想の1日は？", choices: [
+    ["自由気ままに", ["cat", "sloth"]],
+    ["仲間と笑って過ごす", ["dog", "dolphin"]],
+    ["目標を達成できたとき", ["lion", "fox"]],
+    ["静かに充実した日", ["owl", "penguin"]] ] },
+];
+
+// ============================================================
+// 3. 動き（画面の切りかえと点数の計算）
+// ============================================================
+const screen = document.getElementById("screen");
+const COUNT = QUESTIONS.length;  // 質問の数
+let current = 0;   // いま何問目か
+let scores = {};   // 動物ごとの点数
+
+document.getElementById("eyebrow").textContent = `全${COUNT}問でわかる`;
+
+// 肉球アイコン（ボタン用）
+const PAW = `<svg viewBox="0 0 24 24" aria-hidden="true"><ellipse cx="12" cy="15.5" rx="5" ry="4.2" fill="#EDB63F"/><circle cx="5.5" cy="10" r="2.2" fill="#EDB63F"/><circle cx="9.5" cy="6" r="2.2" fill="#EDB63F"/><circle cx="14.5" cy="6" r="2.2" fill="#EDB63F"/><circle cx="18.5" cy="10" r="2.2" fill="#EDB63F"/></svg>`;
+
+function showStart() {
+  const zoo = Object.keys(ANIMALS).map(key =>
+    `<figure><img src="images/${key}.png" alt=""><figcaption>${ANIMALS[key].name}</figcaption></figure>`
+  ).join("");
+  screen.innerHTML = `
+    <p class="lead">${COUNT}問に答えると、あなたを動物に例えて図鑑のページにします。<br>所要時間は1分ほどです。</p>
+    <div class="zoo" aria-label="登場する動物">${zoo}</div>
+    <button class="start" id="start"><span class="paw">${PAW}</span>診断をはじめる <span aria-hidden="true">›</span></button>`;
+  document.getElementById("start").onclick = startQuiz;
+}
+
+function startQuiz() {
+  current = 0;
+  scores = {};
+  Object.keys(ANIMALS).forEach(key => scores[key] = 0);
+  showQuestion();
+}
+
+function showQuestion() {
+  const item = QUESTIONS[current];
+  const progress = QUESTIONS.map((_, i) => `<i class="${i < current ? "done" : ""}"></i>`).join("");
+  const buttons = item.choices
+    .map((c, i) => `<button class="choice" data-i="${i}">${c[0]}</button>`).join("");
+  screen.innerHTML = `
+    <div class="progress" aria-hidden="true">${progress}</div>
+    <span class="qnum">質問 ${current + 1} / ${COUNT}</span>
+    <p class="question">${item.q}</p>
+    <div class="choices">${buttons}</div>`;
+  screen.querySelectorAll(".choice").forEach(btn => {
+    btn.onclick = () => answer(item.choices[btn.dataset.i][1]);
+  });
+}
+
+function answer(animalKeys) {
+  animalKeys.forEach(key => scores[key] += 1);  // 選んだ動物に1点
+  current += 1;
+  if (current < COUNT) showQuestion();
+  else showResult();
+}
+
+function showResult() {
+  // いちばん点数の高い動物を探す（同点なら先に並んでいるほう）
+  const ranking = Object.keys(scores).sort((a, b) => scores[b] - scores[a]);
+  const key = ranking[0];
+  const a = ANIMALS[key];
+  const partner = ANIMALS[a.match];
+
+  // 上位3つの「似ている度」バー
+  const bars = ranking.slice(0, 3).map(k => {
+    const pct = Math.round(scores[k] / COUNT * 100);
+    return `<div class="bar"><span>${ANIMALS[k].name}</span><b><i style="width:${pct}%"></i></b><span>${pct}%</span></div>`;
+  }).join("");
+
+  const shareText = `私を動物に例えると「${a.name}」\n${a.catch}\n#どうぶつ図鑑診断`;
+  const shareUrl = "https://twitter.com/intent/tweet?text=" + encodeURIComponent(shareText);
+
+  screen.innerHTML = `
+    <div class="result-top">
+      <img class="big" src="images/${key}.png" alt="${a.name}のイラスト">
+      <div>
+        <p class="you-are">あなたを動物に例えると</p>
+        <p class="animal">${a.name}</p>
+        <p class="latin">${a.latin}</p>
+      </div>
+    </div>
+    <p class="catch">${a.catch}</p>
+    <p class="text">${a.text}</p>
+    <dl>
+      <dt>生息地</dt><dd>${a.habitat}</dd>
+      <dt>長所</dt><dd>${a.good}</dd>
+      <dt>気をつけたい</dt><dd>${a.care}</dd>
+      <dt>相性がいい</dt><dd>${partner.name}</dd>
+    </dl>
+    <div class="bars" aria-label="似ている度">${bars}</div>
+    <div class="row">
+      <a class="btn" href="${shareUrl}" target="_blank" rel="noopener">Xでシェアする</a>
+      <button class="btn-ghost" id="again">もう一度診断する</button>
+    </div>`;
+  document.getElementById("again").onclick = startQuiz;
+}
+
+showStart();
+</script>
