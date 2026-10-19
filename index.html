@@ -107,6 +107,7 @@
     background: #fff; color: var(--ink); box-shadow: inset 0 0 0 2px var(--line);
   }
   .choice:hover { background: var(--sun-soft); box-shadow: inset 0 0 0 2px var(--sun); }
+  .tie-note { margin: -6px 0 0; font-size: 14px; color: var(--muted); }
   .choice.selected { background: var(--sun-soft); box-shadow: inset 0 0 0 2px var(--green); font-weight: 700; }
   .nav { display: flex; justify-content: space-between; gap: 10px; }
   .btn-nav { background: transparent; color: var(--green); padding: 8px 12px; font-size: 14px; }
@@ -125,6 +126,7 @@
   .catch { margin: 0; padding: 12px 16px; border-radius: 14px; background: var(--sun-soft); font-weight: 700; }
   .card .text { margin: 0; }
   .ai { margin: 0; padding: 14px 16px; border-radius: 14px; background: #fff; box-shadow: inset 0 0 0 2px var(--line); display: grid; gap: 4px; }
+  .ai[hidden] { display: none; }
   .ai b { font-size: 12px; color: var(--green); letter-spacing: .06em; }
   .ai p { margin: 0; }
   .ai.loading p { color: var(--muted); }
@@ -280,9 +282,11 @@ let current = 0;   // いま何問目か
 let chosen = [];   // 各質問で選んだ選択肢の番号（戻ったときに覚えておくため）
 let scores = {};   // 動物ごとの点数（結果を出すときに計算）
 let picked = [];   // 選んだ回答の文章（AIに渡す）
+let tiePick = null; // 同点のとき「最後の質問」で選んだ動物
 
 // AIメッセージを作るサーバーのURL（空のままならAIメッセージは出ません）
 const API_URL = "https://animal-shindan-api.miyowesta.workers.dev";
+const SITE_URL = "https://miyowesta.github.io/animal-shindan/";
 
 document.getElementById("eyebrow").textContent = `全${COUNT}問でわかる`;
 
@@ -303,6 +307,7 @@ function showStart() {
 function startQuiz() {
   current = 0;
   chosen = [];
+  tiePick = null;
   showQuestion();
 }
 
@@ -339,11 +344,11 @@ function answer(i) {
 function goNext() {
   current += 1;
   if (current < COUNT) showQuestion();
-  else showResult();
+  else finish();
 }
 
-function showResult() {
-  // 選んだ回答から点数を計算する（選んだ動物に1点ずつ）
+// 選んだ回答から点数を計算する（選んだ動物に1点ずつ）
+function calcScores() {
   scores = {};
   Object.keys(ANIMALS).forEach(key => scores[key] = 0);
   picked = [];
@@ -352,21 +357,70 @@ function showResult() {
     picked.push(choice[0]);
     choice[1].forEach(key => scores[key] += 1);
   });
+}
 
-  // いちばん点数の高い動物を探す（同点なら先に並んでいるほう）
-  const ranking = Object.keys(scores).sort((a, b) => scores[b] - scores[a]);
-  const key = ranking[0];
+// 1位が1つなら結果へ。同点で1位が複数なら「最後の質問」へ
+function finish() {
+  calcScores();
+  const top = Math.max(...Object.values(scores));
+  const tied = Object.keys(scores).filter(k => scores[k] === top);
+  if (tied.length === 1) {
+    tiePick = null;
+    showResult(tied[0]);
+  } else {
+    showTiebreak(tied);
+  }
+}
+
+// 同点のときだけ出る「最後の質問」（同点の動物のキャッチコピーから選んでもらう）
+function showTiebreak(tied) {
+  const progress = QUESTIONS.map(() => `<i class="done"></i>`).join("");
+  const buttons = tied
+    .map(k => `<button class="choice${tiePick === k ? " selected" : ""}" data-k="${k}">${ANIMALS[k].catch}</button>`).join("");
+  screen.innerHTML = `
+    <div class="progress" aria-hidden="true">${progress}</div>
+    <span class="qnum">最後の質問</span>
+    <p class="question">あなたにいちばん近いのは？</p>
+    <p class="tie-note">同点の動物がいたので、最後にひとつだけ選んでください。</p>
+    <div class="choices">${buttons}</div>
+    <div class="nav">
+      <button class="btn-nav" id="prev">‹ 前の質問</button>
+    </div>
+    <button class="btn-home" id="home">最初の画面に戻る</button>`;
+  screen.querySelectorAll(".choice").forEach(btn => {
+    btn.onclick = () => { tiePick = btn.dataset.k; showResult(tiePick); };
+  });
+  document.getElementById("prev").onclick = () => { current = COUNT - 1; showQuestion(); };
+  document.getElementById("home").onclick = showStart;
+}
+
+function showResult(key) {
+  // 最後の質問で選んだ答えもAIに渡す
+  if (tiePick) picked.push(ANIMALS[tiePick].catch);
+
+  // 点数の高い順に並べる（同点なら、最後の質問で選んだ動物を先に）
+  const ranking = Object.keys(scores).sort((a, b) =>
+    (scores[b] - scores[a]) || ((b === key) - (a === key)));
   const a = ANIMALS[key];
   const partner = ANIMALS[a.match];
 
-  // 上位3つの「似ている度」バー
-  const bars = ranking.slice(0, 3).map(k => {
-    const pct = Math.round(scores[k] / COUNT * 100);
-    return `<div class="bar"><span>${ANIMALS[k].name}</span><b><i style="width:${pct}%"></i></b><span>${pct}%</span></div>`;
-  }).join("");
+  // 上位3つの「似ている度」バー（3つの合計がちょうど100%になるように割り振る）
+  const top3 = ranking.slice(0, 3);
+  const total = top3.reduce((sum, k) => sum + scores[k], 0);
+  const raw = top3.map(k => scores[k] / total * 100);
+  const pcts = raw.map(Math.floor);
+  // 切り捨てで足りない分は、端数の大きい順に1%ずつ足す（同じなら上の順位を優先）
+  let rest = 100 - pcts.reduce((a, b) => a + b, 0);
+  raw.map((v, i) => i)
+    .sort((i, j) => (raw[j] - pcts[j]) - (raw[i] - pcts[i]) || i - j)
+    .forEach(i => { if (rest > 0) { pcts[i] += 1; rest -= 1; } });
+  const bars = top3.map((k, i) =>
+    `<div class="bar"><span>${ANIMALS[k].name}</span><b><i style="width:${pcts[i]}%"></i></b><span>${pcts[i]}%</span></div>`
+  ).join("");
 
-  const shareText = `私を動物に例えると「${a.name}」\n${a.catch}\n#どうぶつ図鑑診断`;
-  const shareUrl = "https://twitter.com/intent/tweet?text=" + encodeURIComponent(shareText);
+  const shareText = `私を動物に例えると「${a.name}」\n${a.catch}\nあなたは何の動物？\n#どうぶつ図鑑診断`;
+  const shareUrl = "https://twitter.com/intent/tweet?text=" + encodeURIComponent(shareText)
+    + "&url=" + encodeURIComponent(SITE_URL);
 
   screen.innerHTML = `
     <div class="result-top">
@@ -411,7 +465,10 @@ async function askAI(animalName) {
     box.classList.remove("loading");
     box.querySelector("p").textContent = data.message;
   } catch (err) {
-    box.hidden = true;   // うまくいかないときは、メッセージ欄ごと隠す
+    // うまくいかないときは、そのことを伝える
+    box.classList.remove("loading");
+    box.querySelector("p").textContent =
+      "AIからのメッセージを取得できませんでした。時間をおいて、もう一度お試しください。";
   }
 }
 
