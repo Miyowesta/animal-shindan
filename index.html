@@ -134,6 +134,8 @@
   dt, dd { margin: 0; padding: 10px 0; border-bottom: 1px solid var(--line); }
   dt { font-size: 13px; color: var(--muted); letter-spacing: .06em; }
   .bars { display: grid; gap: 6px; }
+  .bars-title { font-size: 12px; font-weight: 700; color: var(--green); letter-spacing: .06em; margin: 0; }
+  .bars-note { font-size: 12px; color: var(--muted); margin: 0 0 2px; }
   .bar { display: grid; grid-template-columns: 7em 1fr 2.8em; gap: 8px; align-items: center; font-size: 13px; }
   .bar b { display: block; height: 8px; border-radius: 4px; background: var(--line); overflow: hidden; }
   .bar b i { display: block; height: 100%; background: var(--green); }
@@ -404,7 +406,7 @@ function showResult(key) {
   const a = ANIMALS[key];
   const partner = ANIMALS[a.match];
 
-  // 上位3つの「似ている度」バー（3つの合計がちょうど100%になるように割り振る）
+  // あなたの性格を形づくる上位3タイプのバー（3つの合計がちょうど100%になるように割り振る）
   const top3 = ranking.slice(0, 3);
   const total = top3.reduce((sum, k) => sum + scores[k], 0);
   const raw = top3.map(k => scores[k] / total * 100);
@@ -440,7 +442,11 @@ function showResult(key) {
       <dt>気をつけたい</dt><dd>${a.care}</dd>
       <dt>相性がいい</dt><dd>${partner.name}</dd>
     </dl>
-    <div class="bars" aria-label="似ている度">${bars}</div>
+    <div class="bars">
+      <p class="bars-title">あなたの性格を形づくる上位3タイプ</p>
+      <p class="bars-note">回答から見た、3つのタイプのバランスです</p>
+      ${bars}
+    </div>
     <div class="row">
       <a class="btn" href="${shareUrl}" target="_blank" rel="noopener">Xでシェアする</a>
       <button class="btn-ghost" id="again">もう一度診断する</button>
