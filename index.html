@@ -125,6 +125,14 @@
   .latin { font-style: italic; font-size: 13px; color: var(--muted); margin: 0; }
   .catch { margin: 0; padding: 12px 16px; border-radius: 14px; background: var(--sun-soft); font-weight: 700; }
   .card .text { margin: 0; }
+  .reasons { padding: 14px 16px; border-radius: 14px; background: var(--tile); display: grid; gap: 8px; }
+  .reasons-title { font-size: 12px; font-weight: 700; color: var(--green); letter-spacing: .06em; margin: 0; }
+  .reasons ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 8px; }
+  .reasons li { display: grid; padding-left: 18px; position: relative; line-height: 1.6; }
+  .reasons li::before { content: ""; position: absolute; left: 2px; top: .55em; width: 8px; height: 8px; border-radius: 50%; background: var(--sun); }
+  .reasons .rq { font-size: 13px; color: var(--muted); }
+  .reasons .ra { font-weight: 700; }
+  .reasons-sum { margin: 0; font-size: 15px; }
   .ai { margin: 0; padding: 14px 16px; border-radius: 14px; background: #fff; box-shadow: inset 0 0 0 2px var(--line); display: grid; gap: 4px; }
   .ai[hidden] { display: none; }
   .ai b { font-size: 12px; color: var(--green); letter-spacing: .06em; }
@@ -140,6 +148,14 @@
   .bar b { display: block; height: 8px; border-radius: 4px; background: var(--line); overflow: hidden; }
   .bar b i { display: block; height: 100%; background: var(--green); }
   .bar span:last-child { text-align: right; font-variant-numeric: tabular-nums; color: var(--muted); }
+
+  /* シェア用の画像 */
+  .share { padding: 16px; border-radius: 14px; background: var(--tile); display: grid; gap: 10px; }
+  .share-title { font-size: 12px; font-weight: 700; color: var(--green); letter-spacing: .06em; margin: 0; }
+  .share-note { font-size: 13px; color: var(--muted); margin: 0; }
+  .share img { display: block; width: 100%; height: auto; border-radius: 10px; box-shadow: 0 4px 14px rgba(90, 80, 40, .15); }
+  .share-out { display: grid; gap: 10px; }
+  .share [hidden] { display: none; }
 
   /* 下のネコとイヌ（せまい画面だけ） */
   footer { display: grid; grid-template-columns: 1fr 1fr; align-items: end; margin-inline: -16px; }
@@ -189,43 +205,55 @@
 // 1. 動物のデータ（結果に出る内容）
 //    ここを書きかえると、結果の文章が変わります。
 //    イラストは images フォルダの「英語名.png」が使われます。
+//    trait は「あなたの回答から見えた特徴」のまとめの文に使います。
 // ============================================================
 const ANIMALS = {
   cat:     { name: "ネコ", latin: "Felis libera", catch: "自由気まま、でも実は甘えたがり",
              text: "自分のペースを大切にする人。好きなことにはとことん集中し、気が向いたときに人に寄りそいます。",
-             good: "自分らしさを失わない", care: "興味がないと返事が遅くなりがち", match: "dog", habitat: "日当たりのいい窓辺" },
+             good: "自分らしさを失わない", care: "興味がないと返事が遅くなりがち", match: "dog", habitat: "日当たりのいい窓辺",
+             trait: "自分のペースを大切にする傾向" },
   dog:     { name: "イヌ", latin: "Canis fidelis", catch: "まっすぐで、みんなの味方",
              text: "人の役に立つことが好きな人。素直で行動が早く、まわりを明るく元気にします。",
-             good: "信頼される誠実さ", care: "頼まれると断れない", match: "cat", habitat: "にぎやかな公園" },
+             good: "信頼される誠実さ", care: "頼まれると断れない", match: "cat", habitat: "にぎやかな公園",
+             trait: "まわりの人のために、すぐ動ける傾向" },
   owl:     { name: "フクロウ", latin: "Strix sapiens", catch: "静かに見抜く、夜の知恵者",
              text: "物事をじっくり考える人。話すより聞くのが得意で、いざというときに鋭い一言を出します。",
-             good: "冷静な判断力", care: "考えすぎて動き出しが遅い", match: "dolphin", habitat: "夜ふけの書斎" },
+             good: "冷静な判断力", care: "考えすぎて動き出しが遅い", match: "dolphin", habitat: "夜ふけの書斎",
+             trait: "物事をじっくり考えてから動く傾向" },
   dolphin: { name: "イルカ", latin: "Delphinus amicus", catch: "場を明るくするムードメーカー",
              text: "人と楽しむのが得意な人。空気を読むのがうまく、初対面でもすぐに打ちとけます。",
-             good: "だれとでも仲良くなれる", care: "ひとりの時間が苦手", match: "owl", habitat: "仲間の集まる海" },
+             good: "だれとでも仲良くなれる", care: "ひとりの時間が苦手", match: "owl", habitat: "仲間の集まる海",
+             trait: "人とのつながりや楽しい時間を大切にする傾向" },
   lion:    { name: "ライオン", latin: "Panthera dux", catch: "堂々と先頭に立つリーダー",
              text: "決めたらすぐ動く人。責任感が強く、困ったときに自然と頼られます。",
-             good: "決断力と行動力", care: "ひとりで抱えこみやすい", match: "sloth", habitat: "見晴らしのいい丘" },
+             good: "決断力と行動力", care: "ひとりで抱えこみやすい", match: "sloth", habitat: "見晴らしのいい丘",
+             trait: "自分で決めて、先頭に立って進む傾向" },
   sloth:   { name: "ナマケモノ", latin: "Bradypus tranquillus", catch: "ゆっくり、でも確実に",
              text: "あせらず自分のリズムで進む人。おだやかで、そばにいる人をほっとさせます。",
-             good: "どんなときも落ちついている", care: "締め切りギリギリになりがち", match: "lion", habitat: "木もれ日の森" },
+             good: "どんなときも落ちついている", care: "締め切りギリギリになりがち", match: "lion", habitat: "木もれ日の森",
+             trait: "あせらず、おだやかに過ごす傾向" },
   fox:     { name: "キツネ", latin: "Vulpes callida", catch: "ひらめきで道を切りひらく",
              text: "工夫するのが得意な人。新しいことに目がなく、人が思いつかない近道を見つけます。",
-             good: "アイデアと柔軟さ", care: "飽きっぽい一面も", match: "penguin", habitat: "夕暮れの野原" },
+             good: "アイデアと柔軟さ", care: "飽きっぽい一面も", match: "penguin", habitat: "夕暮れの野原",
+             trait: "新しいことや工夫を楽しむ傾向" },
   penguin: { name: "ペンギン", latin: "Spheniscus diligens", catch: "コツコツ型のがんばり屋",
              text: "仲間と力を合わせ、決めたことを最後までやりとげる人。計画を立てるのが得意です。",
-             good: "まじめで粘り強い", care: "予定外のことにあわてやすい", match: "fox", habitat: "朝の海辺" },
+             good: "まじめで粘り強い", care: "予定外のことにあわてやすい", match: "fox", habitat: "朝の海辺",
+             trait: "計画を立てて、コツコツ進める傾向" },
 };
 
 // ============================================================
 // 2. 質問のデータ
-//    choices の [ ] に入っている動物に1点ずつ入ります。
+//    choices の [ ] の1番目の動物（主）に2点、2番目の動物（副）に1点入ります。
+//    主になる回数は、どの動物も5回ずつにそろえています。
 //    質問の数は自動で数えて画面に表示されます。
+//    weak: true の質問は性格との結びつきが弱めなので、
+//    「あなたの回答から見えた特徴」では後回しにします。
 // ============================================================
 const QUESTIONS = [
   { q: "休みの日、いちばんしたいことは？", choices: [
     ["家でのんびりする", ["sloth", "cat"]],
-    ["友だちと出かける", ["dog", "dolphin"]],
+    ["友だちと出かける", ["dolphin", "dog"]],
     ["行ったことのない場所を探検する", ["fox", "lion"]],
     ["本を読んだり、何かを学んだりする", ["owl", "penguin"]] ] },
   { q: "グループでのあなたの役割は？", choices: [
@@ -234,49 +262,68 @@ const QUESTIONS = [
     ["作戦を考える", ["owl", "fox"]],
     ["マイペースに参加する", ["cat", "sloth"]] ] },
   { q: "困ったことが起きたら？", choices: [
-    ["とにかくすぐ動く", ["lion", "dog"]],
+    ["とにかくすぐ動く", ["dog", "lion"]],
     ["まずはじっくり考える", ["owl", "sloth"]],
     ["うまい抜け道を探す", ["fox", "cat"]],
     ["仲間に相談する", ["penguin", "dolphin"]] ] },
-  { q: "いちばん好きな時間帯は？", choices: [
-    ["早朝", ["penguin", "dog"]],
-    ["お昼", ["lion", "dolphin"]],
-    ["夕方", ["fox", "cat"]],
-    ["深夜", ["owl", "sloth"]] ] },
+  { q: "友だちが悩みを打ち明けてくれたら？", choices: [
+    ["最後まで、じっくり話を聞く", ["owl", "dog"]],
+    ["解決する方法を一緒に考える", ["penguin", "fox"]],
+    ["おいしいものに誘って、気分を変える", ["dolphin", "sloth"]],
+    ["「自分ならこうする」と正直に伝える", ["lion", "cat"]] ] },
   { q: "メッセージが届いたら？", choices: [
     ["すぐに返す", ["dog", "penguin"]],
-    ["スタンプで楽しく返す", ["dolphin", "fox"]],
-    ["気が向いたら返す", ["cat", "sloth"]],
+    ["スタンプで楽しく返す", ["dolphin", "cat"]],
+    ["気が向いたら返す", ["sloth", "fox"]],
     ["内容をよく考えてから返す", ["owl", "lion"]] ] },
   { q: "旅行の計画はどうする？", choices: [
     ["細かく決めておく", ["penguin", "owl"]],
-    ["行き先だけ決める", ["lion", "fox"]],
+    ["行き先だけ決める", ["cat", "lion"]],
     ["みんなに合わせる", ["dog", "dolphin"]],
-    ["計画はしない", ["cat", "sloth"]] ] },
+    ["計画はしない", ["sloth", "fox"]] ] },
   { q: "言われていちばんうれしい言葉は？", choices: [
-    ["やさしいね", ["dog", "sloth"]],
-    ["頭がいいね", ["owl", "fox"]],
+    ["やさしいね", ["sloth", "dog"]],
+    ["頭がいいね", ["fox", "owl"]],
     ["頼りになるね", ["lion", "penguin"]],
     ["一緒にいると楽しい", ["dolphin", "cat"]] ] },
-  { q: "住んでみたい場所は？", choices: [
-    ["静かな森の中", ["owl", "fox"]],
-    ["海の近く", ["dolphin", "penguin"]],
-    ["にぎやかな街の真ん中", ["lion", "dog"]],
-    ["日当たりのいい部屋", ["cat", "sloth"]] ] },
+  { q: "みんなでイベントの準備をするとき、あなたは？", choices: [
+    ["担当の作業に、ひとりで集中する", ["cat", "owl"]],
+    ["まず手を動かして、やりながら工夫する", ["fox", "dog"]],
+    ["みんなに声をかけて、場を引っぱる", ["lion", "dolphin"]],
+    ["自分のペースで、少しずつ確実に進める", ["penguin", "sloth"]] ] },
   { q: "新しいことをはじめるなら？", choices: [
     ["まず計画を立てる", ["penguin", "owl"]],
-    ["とりあえずやってみる", ["lion", "fox"]],
+    ["とりあえずやってみる", ["fox", "lion"]],
     ["だれかを誘って一緒にやる", ["dog", "dolphin"]],
     ["気が向いたときに少しずつ", ["cat", "sloth"]] ] },
   { q: "あなたにとって理想の1日は？", choices: [
-    ["自由気ままに", ["cat", "sloth"]],
+    ["自由気ままに", ["cat", "fox"]],
     ["仲間と笑って過ごす", ["dog", "dolphin"]],
-    ["目標を達成できたとき", ["lion", "fox"]],
-    ["静かに充実した日", ["owl", "penguin"]] ] },
+    ["目標を達成できたとき", ["lion", "penguin"]],
+    ["静かに充実した日", ["sloth", "owl"]] ] },
 ];
 
 // ============================================================
-// 3. 動き（画面の切りかえと点数の計算）
+// 3. 同点のときだけ出る「最後の質問」
+//    1位が同点になった動物の選択肢だけが表示されます。
+//    画面には動物の名前は出しません。選んだ行動の動物が結果になります。
+// ============================================================
+const TIEBREAK = {
+  q: "急に予定が変わったとき、あなたが最初にすることは？",
+  choices: {
+    cat:     "自分がどうしたいか、まず気持ちを確かめる",
+    dog:     "困っている人がいないか、声をかけて手伝う",
+    owl:     "何が変わったのか、落ちついて状況を整理する",
+    dolphin: "みんなが楽しめそうな別の案を出し合う",
+    lion:    "先頭に立って、新しい予定をすぐに決める",
+    sloth:   "「まあいいか」と受けとめて、ひと息つく",
+    fox:     "空いた時間で、前から気になっていたことを試す",
+    penguin: "時間や移動を調べて、計画を組み直す",
+  },
+};
+
+// ============================================================
+// 4. 動き（画面の切りかえと点数の計算）
 // ============================================================
 const screen = document.getElementById("screen");
 const COUNT = QUESTIONS.length;  // 質問の数
@@ -285,12 +332,27 @@ let chosen = [];   // 各質問で選んだ選択肢の番号（戻ったとき�
 let scores = {};   // 動物ごとの点数（結果を出すときに計算）
 let picked = [];   // 選んだ回答の文章（AIに渡す）
 let tiePick = null; // 同点のとき「最後の質問」で選んだ動物
+let tieOrder = [];  // 「最後の質問」の選択肢の並び順（同じ顔ぶれの間は変えない）
+let readyAt = 0;    // 画面が切りかわった直後の、うっかり2回タップを無視するための時刻
 
 // AIメッセージを作るサーバーのURL（空のままならAIメッセージは出ません）
 const API_URL = "https://animal-shindan-api.miyowesta.workers.dev";
 const SITE_URL = "https://miyowesta.github.io/animal-shindan/";
 
 document.getElementById("eyebrow").textContent = `全${COUNT}問でわかる`;
+
+// 画面に文字を入れるときに、記号がHTMLとして読まれないようにする
+function esc(s) {
+  return String(s).replace(/[&<>"']/g, c =>
+    ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+}
+
+// 画面を入れかえる（直後の0.3秒はボタンを押しても反応しない）
+function render(html) {
+  screen.innerHTML = html;
+  readyAt = Date.now() + 300;
+}
+function tooSoon() { return Date.now() < readyAt; }
 
 // 肉球アイコン（ボタン用）
 const PAW = `<svg viewBox="0 0 24 24" aria-hidden="true"><ellipse cx="12" cy="15.5" rx="5" ry="4.2" fill="#EDB63F"/><circle cx="5.5" cy="10" r="2.2" fill="#EDB63F"/><circle cx="9.5" cy="6" r="2.2" fill="#EDB63F"/><circle cx="14.5" cy="6" r="2.2" fill="#EDB63F"/><circle cx="18.5" cy="10" r="2.2" fill="#EDB63F"/></svg>`;
@@ -310,6 +372,7 @@ function startQuiz() {
   current = 0;
   chosen = [];
   tiePick = null;
+  tieOrder = [];
   showQuestion();
 }
 
@@ -320,7 +383,7 @@ function showQuestion() {
   const buttons = item.choices
     .map((c, i) => `<button class="choice${chosen[current] === i ? " selected" : ""}" data-i="${i}">${c[0]}</button>`).join("");
   const canNext = chosen[current] !== undefined;  // 答えた質問なら「次へ」が押せる
-  screen.innerHTML = `
+  render(`
     <div class="progress" aria-hidden="true">${progress}</div>
     <span class="qnum">質問 ${current + 1} / ${COUNT}</span>
     <p class="question">${item.q}</p>
@@ -329,12 +392,12 @@ function showQuestion() {
       <button class="btn-nav" id="prev" ${current === 0 ? "disabled" : ""}>‹ 前の質問</button>
       <button class="btn-nav" id="next" ${canNext ? "" : "disabled"}>${current === COUNT - 1 ? "結果を見る" : "次の質問"} ›</button>
     </div>
-    <button class="btn-home" id="home">最初の画面に戻る</button>`;
+    <button class="btn-home" id="home">最初の画面に戻る</button>`);
   screen.querySelectorAll(".choice").forEach(btn => {
-    btn.onclick = () => answer(Number(btn.dataset.i));
+    btn.onclick = () => { if (!tooSoon()) answer(Number(btn.dataset.i)); };
   });
-  document.getElementById("prev").onclick = () => { current -= 1; showQuestion(); };
-  document.getElementById("next").onclick = goNext;
+  document.getElementById("prev").onclick = () => { if (tooSoon()) return; current -= 1; showQuestion(); };
+  document.getElementById("next").onclick = () => { if (!tooSoon()) goNext(); };
   document.getElementById("home").onclick = showStart;   // 答えはリセットされます
 }
 
@@ -349,7 +412,9 @@ function goNext() {
   else finish();
 }
 
-// 選んだ回答から点数を計算する（選んだ動物に1点ずつ）
+// 選んだ回答から点数を計算する（主の動物に2点、副の動物に1点）
+const MAIN_POINT = 2;
+const SUB_POINT = 1;
 function calcScores() {
   scores = {};
   Object.keys(ANIMALS).forEach(key => scores[key] = 0);
@@ -357,7 +422,8 @@ function calcScores() {
   chosen.forEach((ci, qi) => {
     const choice = QUESTIONS[qi].choices[ci];
     picked.push(choice[0]);
-    choice[1].forEach(key => scores[key] += 1);
+    scores[choice[1][0]] += MAIN_POINT;
+    scores[choice[1][1]] += SUB_POINT;
   });
 }
 
@@ -370,35 +436,75 @@ function finish() {
     tiePick = null;
     showResult(tied[0]);
   } else {
+    // 回答を変えて同点の顔ぶれが変わったら、前に選んだ答えは使わない
+    if (!tied.includes(tiePick)) tiePick = null;
     showTiebreak(tied);
   }
 }
 
-// 同点のときだけ出る「最後の質問」（同点の動物のキャッチコピーから選んでもらう）
+// 同点のときだけ出る「最後の質問」（同点の動物の行動だけを、名前を出さずに並べる）
 function showTiebreak(tied) {
+  // 並び順による選ばれやすさを減らすため、選択肢の順番をランダムにする
+  //（前の質問から戻ってきたときなど、同点の顔ぶれが同じなら前と同じ順のまま）
+  if (tieOrder.length !== tied.length || !tied.every(k => tieOrder.includes(k))) {
+    tieOrder = shuffle(tied);
+  }
   const progress = QUESTIONS.map(() => `<i class="done"></i>`).join("");
-  const buttons = tied
-    .map(k => `<button class="choice${tiePick === k ? " selected" : ""}" data-k="${k}">${ANIMALS[k].catch}</button>`).join("");
-  screen.innerHTML = `
+  const buttons = tieOrder
+    .map(k => `<button class="choice${tiePick === k ? " selected" : ""}" data-k="${k}">${esc(TIEBREAK.choices[k])}</button>`).join("");
+  render(`
     <div class="progress" aria-hidden="true">${progress}</div>
     <span class="qnum">最後の質問</span>
-    <p class="question">あなたにいちばん近いのは？</p>
-    <p class="tie-note">同点の動物がいたので、最後にひとつだけ選んでください。</p>
+    <p class="question">${esc(TIEBREAK.q)}</p>
+    <p class="tie-note">回答がいくつかのタイプで並んだので、あと1問だけ答えてください。</p>
     <div class="choices">${buttons}</div>
     <div class="nav">
       <button class="btn-nav" id="prev">‹ 前の質問</button>
     </div>
-    <button class="btn-home" id="home">最初の画面に戻る</button>`;
+    <button class="btn-home" id="home">最初の画面に戻る</button>`);
   screen.querySelectorAll(".choice").forEach(btn => {
-    btn.onclick = () => { tiePick = btn.dataset.k; showResult(tiePick); };
+    btn.onclick = () => {
+      if (tooSoon()) return;
+      tiePick = btn.dataset.k;
+      showResult(tiePick);
+    };
   });
-  document.getElementById("prev").onclick = () => { current = COUNT - 1; showQuestion(); };
+  document.getElementById("prev").onclick = () => { if (tooSoon()) return; current = COUNT - 1; showQuestion(); };
   document.getElementById("home").onclick = showStart;
+}
+
+// 配列の順番をランダムに並べかえた新しい配列を返す
+function shuffle(list) {
+  const a = [...list];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+// 「あなたの回答から見えた特徴」：結果の動物に点が入った回答から選ぶ
+function buildReasons(key) {
+  const hits = [];
+  chosen.forEach((ci, qi) => {
+    const [text, keys] = QUESTIONS[qi].choices[ci];
+    if (!keys.includes(key)) return;
+    const other = keys.find(k => k !== key);
+    const main = keys[0] === key;   // この動物が主（2点）だった回答か
+    hits.push({ qi, q: QUESTIONS[qi].q, a: text, weak: !!QUESTIONS[qi].weak, main, otherScore: scores[other] });
+  });
+  // 先に出す順：性格との結びつきが強い質問 → この動物が主だった回答
+  // → いっしょに点が入った動物の点が低い回答（ほかの動物と差がついた回答ほど、この動物らしさを表す）→ 質問の順
+  hits.sort((x, y) => (x.weak - y.weak) || (y.main - x.main) || (x.otherScore - y.otherScore) || (x.qi - y.qi));
+  const items = hits.slice(0, 2).map(h => ({ q: h.q, a: h.a }));
+  // 最後の質問に答えた人は、その答えも理由に入れる（最大3件）
+  if (tiePick) items.push({ q: TIEBREAK.q, a: TIEBREAK.choices[tiePick] });
+  return items;
 }
 
 function showResult(key) {
   // 最後の質問で選んだ答えもAIに渡す
-  if (tiePick) picked.push(ANIMALS[tiePick].catch);
+  const answers = tiePick ? [...picked, TIEBREAK.choices[tiePick]] : picked;
 
   // 点数の高い順に並べる（同点なら、最後の質問で選んだ動物を先に）
   const ranking = Object.keys(scores).sort((a, b) =>
@@ -424,7 +530,11 @@ function showResult(key) {
   const shareUrl = "https://twitter.com/intent/tweet?text=" + encodeURIComponent(shareText)
     + "&url=" + encodeURIComponent(SITE_URL);
 
-  screen.innerHTML = `
+  const reasons = buildReasons(key).map(r =>
+    `<li><span class="rq">${esc(r.q)}</span><span class="ra">「${esc(r.a)}」を選択</span></li>`
+  ).join("");
+
+  render(`
     <div class="result-top">
       <img class="big" src="images/${key}.png" alt="${a.name}のイラスト">
       <div>
@@ -435,6 +545,11 @@ function showResult(key) {
     </div>
     <p class="catch">${a.catch}</p>
     <p class="text">${a.text}</p>
+    <section class="reasons">
+      <p class="reasons-title">あなたの回答から見えた特徴</p>
+      <ul>${reasons}</ul>
+      <p class="reasons-sum">あなたの回答には、${esc(a.trait)}が表れています。そんな特徴が${esc(a.name)}タイプの性格と重なっています。</p>
+    </section>
     <div class="ai loading" id="ai" hidden><b>AIからあなたへのメッセージ</b><p>あなたの回答を読んで、メッセージを書いています…</p></div>
     <dl>
       <dt>生息地</dt><dd>${a.habitat}</dd>
@@ -447,16 +562,202 @@ function showResult(key) {
       <p class="bars-note">回答から見た、3つのタイプのバランスです</p>
       ${bars}
     </div>
+    <section class="share">
+      <p class="share-title">シェア用の画像</p>
+      <p class="share-note">結果を1枚の画像にできます。保存して、Xに投稿するときに添付してください。</p>
+      <button class="btn-ghost" id="makeImg">シェア用の画像を作る</button>
+      <div class="share-out" id="shareOut" hidden>
+        <img id="shareImg" alt="${a.name}の診断結果の画像" width="1200" height="675">
+        <div class="row">
+          <a class="btn" id="saveImg" download="dobutsu-zukan-${key}.png">画像を保存する</a>
+          <button class="btn-ghost" id="sendImg" hidden>画像をシェアする</button>
+        </div>
+        <p class="share-note">うまく保存できないときは、画像を長押し（パソコンは右クリック）して保存してください。</p>
+      </div>
+    </section>
     <div class="row">
       <a class="btn" href="${shareUrl}" target="_blank" rel="noopener">Xでシェアする</a>
       <button class="btn-ghost" id="again">もう一度診断する</button>
-    </div>`;
+    </div>`);
   document.getElementById("again").onclick = startQuiz;
-  askAI(a.name);
+  setupShareImage(key, shareText);
+  askAI(a.name, answers);
+}
+
+// ============================================================
+// 5. シェア用の画像（1200×675、Xで見やすい横長）
+//    結果名・イラスト・キャッチコピー・サイトのURLを1枚の画像にします。
+//    画像はこの端末の中だけで作られ、どこにも送られません。
+// ============================================================
+const SHARE_W = 1200, SHARE_H = 675;
+
+// 画像ファイルを読みこみ終わるまで待つ
+function loadImage(src) {
+  return new Promise((ok, ng) => {
+    const img = new Image();
+    img.onload = () => ok(img);
+    img.onerror = ng;
+    img.src = src;
+  });
+}
+
+// 角の丸い四角の形を作る
+function roundRect(g, x, y, w, h, r) {
+  g.beginPath();
+  g.moveTo(x + r, y);
+  g.arcTo(x + w, y, x + w, y + h, r);
+  g.arcTo(x + w, y + h, x, y + h, r);
+  g.arcTo(x, y + h, x, y, r);
+  g.arcTo(x, y, x + w, y, r);
+  g.closePath();
+}
+
+// 決めた幅に収まるように、文字の大きさを小さくする
+function fitFont(g, text, weight, size, family, maxW) {
+  while (size > 20) {
+    g.font = `${weight} ${size}px ${family}`;
+    if (g.measureText(text).width <= maxW) break;
+    size -= 2;
+  }
+  return size;
+}
+
+// 決めた幅で折り返して、行のリストにする（「、」の後ろで折り返しやすくする）
+function wrapText(g, text, maxW) {
+  const lines = [];
+  let line = "";
+  for (const ch of text) {
+    if (g.measureText(line + ch).width > maxW && line) {
+      const cut = line.lastIndexOf("、");
+      if (cut > 0 && cut < line.length - 1) { lines.push(line.slice(0, cut + 1)); line = line.slice(cut + 1); }
+      else { lines.push(line); line = ""; }
+    }
+    line += ch;
+  }
+  if (line) lines.push(line);
+  return lines;
+}
+
+async function makeShareImage(key) {
+  const a = ANIMALS[key];
+  const TITLE = "'M PLUS Rounded 1c', 'Hiragino Maru Gothic ProN', sans-serif";
+  const BODY = "'Zen Maru Gothic', 'Hiragino Maru Gothic ProN', sans-serif";
+  const url = SITE_URL.replace(/^https:\/\//, "").replace(/\/$/, "");
+
+  // 使う文字のフォントを先に読みこむ（読みこむ前に描くと、別の字体になってしまう）
+  await Promise.all([
+    document.fonts.load(`800 100px ${TITLE}`, a.name + "どうぶつ図鑑診断"),
+    document.fonts.load(`700 30px ${BODY}`, a.catch + "あなたを動物に例えると" + url + "#"),
+  ]).catch(() => {});
+
+  const [pic, left, right] = await Promise.all([
+    loadImage(`images/${key}.png`), loadImage("images/bg-left.jpg"), loadImage("images/bg-right.jpg"),
+  ]);
+
+  const c = document.createElement("canvas");
+  c.width = SHARE_W; c.height = SHARE_H;
+  const g = c.getContext("2d");
+  g.imageSmoothingQuality = "high";
+
+  // 背景：画面と同じクリーム色＋左右に森のイラスト
+  g.fillStyle = "#F6F3E9"; g.fillRect(0, 0, SHARE_W, SHARE_H);
+  const sideW = left.width * SHARE_H / left.height;
+  g.drawImage(left, 0, 0, sideW, SHARE_H);
+  g.drawImage(right, SHARE_W - sideW, 0, sideW, SHARE_H);
+  // 森の絵の内側の端を、背景の色にふんわりなじませる
+  const fade = (x0, x1) => {
+    const gr = g.createLinearGradient(x0, 0, x1, 0);
+    gr.addColorStop(0, "rgba(246, 243, 233, 0)"); gr.addColorStop(1, "#F6F3E9");
+    g.fillStyle = gr; g.fillRect(Math.min(x0, x1), 0, Math.abs(x1 - x0), SHARE_H);
+  };
+  fade(sideW * .7, sideW); fade(SHARE_W - sideW * .7, SHARE_W - sideW);
+
+  // 中央の白いカード
+  const cx = 150, cy = 40, cw = 900, ch = 595;
+  g.save();
+  g.shadowColor = "rgba(90, 80, 40, .18)"; g.shadowBlur = 30; g.shadowOffsetY = 10;
+  roundRect(g, cx, cy, cw, ch, 32);
+  g.fillStyle = "#FFFFFC"; g.fill();
+  g.restore();
+
+  // イラスト（元の絵が小さいので、ぼやけない大きさにして角を丸くする）
+  const pw = 330, ph = Math.round(pw * pic.height / pic.width);
+  const px = cx + 50, py = cy + 70;
+  g.save();
+  roundRect(g, px, py, pw, ph, 26); g.clip();
+  g.drawImage(pic, px, py, pw, ph);
+  g.restore();
+
+  // 文字
+  const tx = px + pw + 44, tw = cx + cw - 50 - tx;
+  g.textBaseline = "alphabetic";
+  g.fillStyle = "#6E6C5F"; g.font = `700 28px ${BODY}`;
+  g.fillText("あなたを動物に例えると", tx, py + 34);
+
+  g.fillStyle = "#B5662C";
+  const nameSize = fitFont(g, a.name, 800, 104, TITLE, tw);
+  g.fillText(a.name, tx, py + 40 + nameSize);
+
+  g.fillStyle = "#6E6C5F"; g.font = `italic 500 26px Georgia, serif`;
+  g.fillText(a.latin, tx, py + 40 + nameSize + 46);
+
+  // キャッチコピー（黄色い帯）
+  g.font = `700 30px ${BODY}`;
+  const lines = wrapText(g, a.catch, cw - 100 - 48);
+  const by = py + ph + 34, lh = 46, bh = lines.length * lh + 30;
+  roundRect(g, px, by, cw - 100, bh, 20);
+  g.fillStyle = "#FBF0D2"; g.fill();
+  g.fillStyle = "#3A3A32";
+  lines.forEach((l, i) => g.fillText(l, px + 24, by + 15 + 34 + i * lh));
+
+  // いちばん下：診断の名前とURL
+  const fy = cy + ch - 46;
+  g.strokeStyle = "#E4DFCF"; g.lineWidth = 2; g.setLineDash([8, 8]);
+  g.beginPath(); g.moveTo(px, fy - 62); g.lineTo(cx + cw - 50, fy - 62); g.stroke();
+  g.setLineDash([]);
+  g.font = `800 38px ${TITLE}`;
+  g.fillStyle = "#B5662C"; g.fillText("どうぶつ", px, fy);
+  const w1 = g.measureText("どうぶつ").width;
+  g.fillStyle = "#2E5B3D"; g.fillText("図鑑診断", px + w1, fy);
+  g.fillStyle = "#6E6C5F"; g.font = `700 24px ${BODY}`;
+  g.textAlign = "right";
+  g.fillText(url, cx + cw - 50, fy);
+  g.fillStyle = "#3E7550"; g.fillText("#どうぶつ図鑑診断", cx + cw - 50, fy - 32);
+  g.textAlign = "left";
+
+  return new Promise(ok => c.toBlob(ok, "image/png"));
+}
+
+// 「シェア用の画像を作る」ボタンの動き
+function setupShareImage(key, shareText) {
+  const makeBtn = document.getElementById("makeImg");
+  const out = document.getElementById("shareOut");
+  const sendBtn = document.getElementById("sendImg");
+  makeBtn.onclick = async () => {
+    makeBtn.disabled = true;
+    makeBtn.textContent = "画像を作っています…";
+    try {
+      const blob = await makeShareImage(key);
+      const imgUrl = URL.createObjectURL(blob);
+      document.getElementById("shareImg").src = imgUrl;
+      document.getElementById("saveImg").href = imgUrl;
+      out.hidden = false;
+      makeBtn.hidden = true;
+      // スマホなど、画像ごとシェアできる端末では「画像をシェアする」ボタンも出す
+      const file = new File([blob], `dobutsu-zukan-${key}.png`, { type: "image/png" });
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        sendBtn.hidden = false;
+        sendBtn.onclick = () => navigator.share({ files: [file], text: shareText + "\n" + SITE_URL }).catch(() => {});
+      }
+    } catch (err) {
+      makeBtn.disabled = false;
+      makeBtn.textContent = "画像を作れませんでした。もう一度試す";
+    }
+  };
 }
 
 // AIに、その人だけのメッセージを書いてもらう
-async function askAI(animalName) {
+async function askAI(animalName, answers) {
   if (!API_URL) return;
   const box = document.getElementById("ai");
   box.hidden = false;
@@ -464,7 +765,7 @@ async function askAI(animalName) {
     const res = await fetch(API_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ animal: animalName, answers: picked }),
+      body: JSON.stringify({ animal: animalName, answers }),
     });
     const data = await res.json();
     if (!res.ok || !data.message) throw new Error(data.error);
